@@ -12,21 +12,9 @@ This is a basic blog application that allows users to create, read, update, and 
 -------------------
 
 The project directory is structured as follows:
-
-*   `app`: The main application directory.
 *   `models`: Directory containing data models used in the application.
 *   `routes`: Directory containing API routes for the application.
 *   `schemas`: Directory containing Pydantic schemas used for data validation.
-*   `settings`: Directory containing application settings and configurations.
 *   `main.py`: The entry point of the application.
 *   `requirements.txt`: A file listing the required dependencies for the application.
 
-## File Descriptions
--------------------
-
-*   **`app/main.py`**: The entry point of the application.
-*   **`app/models.py`**: Contains data models used in the application.
-*   **`app/routes.py`**: Contains API routes for the application.
-*   **`app/schemas.py`**: Contains Pydantic schemas used for data validation.
-*   **`app/settings.py`**: Contains application settings and configurations.
-*   **`requirements.txt`**: A file listing the required dependencies for the application.
