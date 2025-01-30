@@ -1,5 +1,5 @@
 from fastapi_mail import FastMail, MessageSchema, MessageType
-from conf import conf
+from mail.mail_conf import conf
 
 async def send_mail(email: str, subject: str, content: str):
     template = f"""

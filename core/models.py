@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, DATETIME, ForeignKey
+from sqlalchemy import Column, Integer, String, DATETIME, ForeignKey
 from sqlalchemy.orm import relationship
-from database import  Base
+from .database import  Base
 
 class Blog(Base):
     __tablename__ = "blog"

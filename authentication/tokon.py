@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import jwt
-from schemas import TokenData
+from core.schemas import TokenData
 
 # to get a string like this run:
 # openssl rand -hex 32
