@@ -12,6 +12,7 @@ def add_blog(request: Blog_schema, db):
         blog_data = Blog(
             title = request.title,
             content = request.content,
+            user_id = request.user_id,
             created_at = datetime.now()
         )
         db.add(blog_data)

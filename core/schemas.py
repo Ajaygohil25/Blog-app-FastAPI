@@ -5,6 +5,7 @@ from pydantic import BaseModel
 class Blog_schema(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
+    user_id: Optional[int] = None
     created_at: Optional[datetime] = None
 
 class User_schema(BaseModel):

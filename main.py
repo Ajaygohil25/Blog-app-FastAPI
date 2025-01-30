@@ -7,7 +7,8 @@ from routers import users, blog
 app = FastAPI()
 app.include_router(users.router)
 app.include_router(blog.router)
-app.include_router(auth.router)
+# app.include_router(auth.router)
+
 Base.metadata.create_all(engine)
 
 @app.get("/")

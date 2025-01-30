@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends
 from fastapi_pagination import add_pagination
 from sqlalchemy.orm import Session
 from starlette.responses import Response
+
+from authentication.oauth2 import get_current_user
 from core.database import get_db
-from core.schemas import Blog_schema
+from core.schemas import Blog_schema, TokenData
 from repository.blogRepo import add_blog, get_all_blog_data, get_blog_data, update_blog_data, delete_blog_data
 
 router = APIRouter(
@@ -11,7 +13,7 @@ router = APIRouter(
 )
 add_pagination(router)
 @router.post("/blog/create_blog")
-def create_blog(request: Blog_schema, db: Session = Depends(get_db)):
+def create_blog(request: Blog_schema, current_user: TokenData  = Depends(get_current_user),db: Session = Depends(get_db)):
     return add_blog(request, db)
 
 @router.get("/blog/all_blogs")

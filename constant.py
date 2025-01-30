@@ -1,5 +1,5 @@
 LOGIN_SUCCESS = "Login Successful"
 LOGIN_FAILED = "Login Failed"
 OTP_MESSAGE = "OTP is : {0}"
-LOGOIN_CONTENT = "Thank you for logging in our system !"
+LOGIN_CONTENT = "Thank you for logging in our system !"
 LOGIN_SUB = "This is a mail for Log in system"
