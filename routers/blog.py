@@ -13,8 +13,10 @@ router = APIRouter(
 )
 add_pagination(router)
 @router.post("/blog/create_blog")
-def create_blog(request: Blog_schema, current_user: TokenData  = Depends(get_current_user),db: Session = Depends(get_db)):
-    return add_blog(request, db)
+def create_blog(request: Blog_schema,
+                current_user: TokenData  = Depends(get_current_user),
+                db: Session = Depends(get_db)):
+    return add_blog(request,current_user.email ,db)
 
 @router.get("/blog/all_blogs")
 def get_all_blog(db: Session = Depends(get_db), page:int = 1, size:int = 5):

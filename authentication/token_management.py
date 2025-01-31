@@ -7,6 +7,10 @@ from core.schemas import TokenData
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+BlackListedToken = set()
+
+def blacklist_token(token):
+    BlackListedToken.add(token)
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
@@ -20,6 +24,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 def verify_access_token(token,credentials_exception):
     try:
+        if token in BlackListedToken:
+            raise credentials_exception
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
@@ -28,3 +34,9 @@ def verify_access_token(token,credentials_exception):
         return token_data
     except Exception as e:
         raise credentials_exception
+
+
+def create_reset_password_token(email: str):
+    data = {"sub": email, "exp": datetime.now() + timedelta(minutes=10)}
+    token = jwt.encode(data, SECRET_KEY, ALGORITHM)
+    return token

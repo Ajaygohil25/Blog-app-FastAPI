@@ -1,12 +1,9 @@
-from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel
 
 class Blog_schema(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
-    user_id: Optional[int] = None
-    created_at: Optional[datetime] = None
 
 class User_schema(BaseModel):
     name: Optional[str] = None
@@ -27,3 +24,19 @@ class Token(BaseModel):
     token_type: str
     class Config:
         from_attributes = True
+
+class ResetPassword(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+    class Config:
+        from_attributes = True
+
+class ForgotPassword(BaseModel):
+    new_password: str
+    confirm_password: str
+    class Config:
+        from_attributes = True
+
+class UserMail(BaseModel):
+    email: str

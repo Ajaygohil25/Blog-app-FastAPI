@@ -4,15 +4,17 @@ from fastapi.openapi.models import Response
 from starlette import status
 from core.models import Blog
 from core.schemas import Blog_schema
+from repository.userRepo import get_user
 
 
-def add_blog(request: Blog_schema, db):
+def add_blog(request: Blog_schema,user_email_id, db):
     """ This insert blog data into database"""
+    user_data = get_user(user_email_id, db)
     try:
         blog_data = Blog(
             title = request.title,
             content = request.content,
-            user_id = request.user_id,
+            user_id = user_data.id,
             created_at = datetime.now()
         )
         db.add(blog_data)
@@ -20,7 +22,6 @@ def add_blog(request: Blog_schema, db):
         db.refresh(blog_data)
         return {
                 "details" : "Blog added successfully !",
-                "Blog data": blog_data
         }
     except Exception as e:
         db.rollback()
