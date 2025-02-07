@@ -1,51 +1,66 @@
-from sqlalchemy import Column, Integer, String, DATETIME, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from .database import  Base
-
-class Blog(Base):
-    __tablename__ = "blog"
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column("title",String)
-    content = Column("content",String)
-    created_at = Column("created_at", DATETIME)
-    user_id = Column("user_id", Integer, ForeignKey("users.id"))
-    user = relationship("users", back_populates="blog")
-    images = relationship("images", back_populates="blog")
-    likes = relationship("likes", back_populates="blog")
-    comments = relationship("comments", back_populates="blog")
+from .database import Base
 
 class Users(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column("name",String)
-    email = Column("email",String)
-    password = Column("password",String)
-    Blog = relationship("blog",back_populates="users")
-    Like = relationship("likes", back_populates="users")
-    comments = relationship("comments", back_populates="users")
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
+
+    # Relationships
+    blogs = relationship("Blog", back_populates="user")
+    likes = relationship("Likes", back_populates="user")
+    comments = relationship(
+                "Comments",
+                foreign_keys="[Comments.commented_by]",
+                back_populates="commented_by_user",
+                cascade="all, delete, delete-orphan")
+
+class Blog(Base):
+    __tablename__ = "blog"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+
+    # Relationships
+    user = relationship("Users", back_populates="blogs", passive_deletes=True)
+    images = relationship("Images", back_populates="blog",cascade="all, delete, delete-orphan")
+    likes = relationship("Likes", back_populates="blog", cascade="all, delete, delete-orphan")
+    comments = relationship("Comments", back_populates="blog", cascade="all, delete, delete-orphan")
 
 class Images(Base):
     __tablename__ = "images"
     id = Column(Integer, primary_key=True, index=True)
-    blog_id = Column("blog_id", Integer, ForeignKey("blog.id"))
-    blog = relationship("blog", back_populates="images")
+    image_name = Column(String, nullable=False)
+    blog_id = Column(Integer, ForeignKey("blog.id", ondelete="CASCADE"))
+
+    # Relationships
+    blog = relationship("Blog", back_populates="images")
 
 class Likes(Base):
     __tablename__ = "likes"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column("liked_by", Integer, ForeignKey("users.id"))
-    blog_id = Column("blog_id", Integer, ForeignKey("blog.id"))
-    blog = relationship("blog", back_populates="likes")
-    user = relationship("users", back_populates="likes")
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    blog_id = Column(Integer, ForeignKey("blog.id", ondelete="CASCADE"))
+
+    # Relationships
+    blog = relationship("Blog", back_populates= "likes")
+    user = relationship("Users", back_populates="likes")
 
 class Comments(Base):
-    __tablename__ = "likes"
+    __tablename__ = "comments"
     id = Column(Integer, primary_key=True, index=True)
-    comment = Column("comment", String)
-    reply = Column("reply", String)
-    user_id = Column("commented_by", Integer, ForeignKey("users.id"))
-    blog_id = Column("blog_id", Integer, ForeignKey("blog.id"))
-    blog = relationship("blog", back_populates="comments")
-    user = relationship("users", back_populates="comments")
+    comment = Column(String, nullable=False)
+    reply = Column(String)
+    commented_by = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    reply_by = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    blog_id = Column(Integer, ForeignKey("blog.id", ondelete="CASCADE"))
 
-
+    # Relationships
+    blog = relationship("Blog", back_populates="comments")
+    commented_by_user = relationship("Users",foreign_keys=[commented_by], back_populates="comments")
+    reply_by_user = relationship("Users",foreign_keys=[reply_by])

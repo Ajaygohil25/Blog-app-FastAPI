@@ -1,24 +1,49 @@
-from fastapi import APIRouter, Depends
+import logging
+import shutil
+from pathlib import Path
+from typing import List, Annotated, Optional
+
+from fastapi import APIRouter, Depends, UploadFile, File, Form, Body
 from fastapi_pagination import add_pagination
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
 from authentication.oauth2 import get_current_user
 from core.database import get_db
-from core.schemas import Blog_schema, TokenData
-from repository.blogRepo import add_blog, get_all_blog_data, get_blog_data, update_blog_data, delete_blog_data
+from core.schemas import BlogSchema, TokenData, CommentSchema, ReplyComment, UpdateBlogImage
+from repository.blogRepo import add_blog, get_all_blog_data, get_blog_data, update_blog_data, delete_blog_data, \
+    like_unlike_post, comment_post, update_blog_comment, delete_blog_comment, reply_blog_comment, add_blog_image, \
+    delete_blog_image
 
 router = APIRouter(
     tags=["Blogs"],
 )
 add_pagination(router)
-@router.post("/blog/create_blog")
-def create_blog(request: Blog_schema,
-                current_user: TokenData  = Depends(get_current_user),
-                db: Session = Depends(get_db)):
-    return add_blog(request,current_user.email ,db)
 
-@router.get("/blog/all_blogs")
+
+logging.basicConfig(level=logging.DEBUG)
+UPLOAD_FOLDER = Path("media")
+@router.post("/blog/create_blog")
+async def create_blog(
+                title: str = Form(...),
+                content: str = Form(...),
+                images: Optional[List[UploadFile]] = File(None),
+                current_user: TokenData  = Depends(get_current_user),
+                db: Session = Depends(get_db)
+):
+    saved_files = []
+    print("images ", images)
+    if images:
+        for image in images:
+            filepath = UPLOAD_FOLDER / image.filename
+            with open(filepath, "wb") as image_file:
+                shutil.copyfileobj(image.file, image_file)
+            saved_files.append(str(filepath))
+    print("files ", saved_files)
+    request_data = BlogSchema(title=title, content=content, images=images)
+    return await add_blog(request_data, current_user,db)
+
+@router.get("/blog/show_all_blogs")
 def get_all_blog(db: Session = Depends(get_db), page:int = 1, size:int = 5):
     return get_all_blog_data(db, page, size)
 
@@ -27,23 +52,76 @@ def get_blog(blog_id: int, response: Response, db: Session = Depends(get_db)):
    return get_blog_data(blog_id, response, db)
 
 @router.put("/blog/update_blog/{blog_id}")
-def update_blog(blog_id: int, request_data: Blog_schema, response: Response, db: Session = Depends(get_db)):
+def update_blog(blog_id: int, request_data: BlogSchema, response: Response, db: Session = Depends(get_db)):
     return update_blog_data(blog_id, request_data, response, db)
 
 @router.delete("/blog/delete_blog/{blog_id}")
 def delete_blog(blog_id: int,response: Response,db: Session = Depends(get_db)):
     return delete_blog_data(blog_id, response, db)
 
-# api with pagination
-# Use of pagination with library of fastapi_pagination
-# @app.get("/blog/all_blog", response_model = LimitOffsetPage[Blog_schema], tags = ["Pagination"])
-# def get_all_blogs(response: Response, db: Session = Depends(get_db)):
-#     try:
-#         blogs = db.query(Blog).all()
-#         if not blogs:
-#             response.status_code = status.HTTP_404_NOT_FOUND
-#             return {"Error": "No data available"}
-#         return paginate(db.query(Blog).order_by(Blog.created_at.desc()))
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+@router.post("/blog/like-unlike/{blog_id}")
+def like_unlike(
+        blog_id: int,
+        response: Response,
+        current_user: TokenData  = Depends(get_current_user),
+        db: Session = Depends(get_db)):
+    return like_unlike_post(db, response,current_user,blog_id)
+
+
+@router.post("/blog/add-comment/{blog_id}", status_code= 200)
+def add_comment(
+        blog_id: int,
+        request_data: CommentSchema,
+        response: Response,
+        current_user: TokenData  = Depends(get_current_user),
+        db: Session = Depends(get_db)):
+    return comment_post(db,request_data, response,current_user,blog_id)
+
+@router.patch("/blog/update-comment/{comment_id}", status_code= 200)
+def update_comment(
+        comment_id : int,
+        request_data: CommentSchema,
+        response: Response,
+        current_user: TokenData  = Depends(get_current_user),
+        db: Session = Depends(get_db)):
+    return update_blog_comment(db,request_data,response, current_user,comment_id)
+
+@router.delete("/blog/delete-comment/{comment_id}", status_code= 200)
+def delete_comment(
+        comment_id : int,
+        response: Response,
+        current_user: TokenData  = Depends(get_current_user),
+        db: Session = Depends(get_db)):
+    return delete_blog_comment(db, response,current_user,comment_id)
+
+@router.patch("/blog/reply-comment/{comment_id}", status_code= 200)
+def reply_comment(
+        comment_id : int,
+        request_data: ReplyComment,
+        response: Response,
+        current_user: TokenData = Depends(get_current_user),
+        db: Session = Depends(get_db)):
+    return reply_blog_comment(comment_id,request_data,response, current_user, db)
+
+@router.delete("/blog/delete-blog-image/")
+def delete_image(blog_id: int, image_id: int,
+                 response: Response,
+                 current_user: TokenData = Depends(get_current_user),
+                 db: Session = Depends(get_db)):
+    return delete_blog_image(blog_id, image_id, response, current_user, db)
+
+@router.post("/blog/update-blog-image/{blog_id}")
+async def update_blog_image(blog_id: int,
+                        response: Response,
+                        images: List[UploadFile] = File(None),
+                        current_user: TokenData = Depends(get_current_user),
+                        db: Session = Depends(get_db)):
+    saved_files = []
+    if images:
+        for image in images:
+            filepath = UPLOAD_FOLDER / image.filename
+            with open(filepath, "wb") as image_file:
+                shutil.copyfileobj(image.file, image_file)
+            saved_files.append(str(filepath))
+    print("files ", saved_files)
+    return await add_blog_image(blog_id, images, response,current_user, db)

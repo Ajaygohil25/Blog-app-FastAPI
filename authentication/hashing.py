@@ -1,7 +1,6 @@
 # from passlib.context import CryptContext
 from passlib.context import CryptContext
 
-
 class Hash():
     def encrypt(password: str):
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

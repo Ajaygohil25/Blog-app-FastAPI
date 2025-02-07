@@ -3,49 +3,59 @@ from starlette import status
 from fastapi import BackgroundTasks, HTTPException
 from starlette.responses import JSONResponse
 from authentication import token_management
-from constant import LOGIN_SUB, LOGIN_CONTENT
+from constant import LOGIN_SUB, LOGIN_CONTENT, INVALID_PASSWORD, INVALID_EMAIL
 from core.models import Users
-from core.schemas import User_schema, Token
+from core.schemas import UserSchema, Token
 from mail.mail import send_mail
 from authentication.hashing import Hash
 from authentication.token_management import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, \
     create_reset_password_token, verify_access_token
+from validations import validate_input, validate_email, validate_password
 
-
-def add_user(request_data: User_schema, db):
-    """ This method add a new user """
-    encrypted_password = Hash.encrypt(request_data.password)
-    user_data = Users(
-        name = request_data.name,
-        email = request_data.email,
-        password = encrypted_password
-    )
-    db.add(user_data)
-    db.commit()
-    db.refresh(user_data)
-    return user_data
-
-async def user_login(login_data, db, background_tasks: BackgroundTasks):
-    input_email = login_data.username
-    input_password = login_data.password
-
-    user_data = db.query(Users).filter(Users.email == input_email).first()
-    if user_data:
-        if Hash.verify_password(input_password, user_data.password):
-            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-            access_token = create_access_token(
-                data={"sub": input_email}, expires_delta=access_token_expires
-            )
-            background_tasks.add_task(send_mail, input_email, LOGIN_SUB, LOGIN_CONTENT)
-            return Token(access_token=access_token, token_type="bearer")
-        else:
-            return HTTPException(status_code = status.HTTP_401_UNAUTHORIZED)
-    else:
-        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = f"{input_email} not found in database")
 
 def get_user(email_id, db):
     user_data = db.query(Users).filter(Users.email == email_id).first()
     return user_data
+
+
+def add_user(request_data: UserSchema, db):
+    """ This method add a new user """
+    if validate_input(request_data):
+        if get_user(request_data.email, db):
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"{request_data.email} already exist in system !")
+        encrypted_password = Hash.encrypt(request_data.password)
+        user_data = Users(
+            name = request_data.name,
+            email = request_data.email,
+            password = encrypted_password
+        )
+        db.add(user_data)
+        db.commit()
+        db.refresh(user_data)
+        return JSONResponse(
+            {"detail": "Account created successfully",
+             "sing-in in app " : "http://127.0.0.1:8000/user/sing-in"})
+
+async def user_login(login_data, db, background_tasks: BackgroundTasks):
+        input_email = login_data.username
+        input_password = login_data.password
+        if validate_email(input_email) and validate_password(input_password):
+            user_data = db.query(Users).filter(Users.email == input_email).first()
+            if user_data:
+                if Hash.verify_password(input_password, user_data.password):
+                    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+                    access_token = create_access_token(
+                        data={"sub": input_email}, expires_delta=access_token_expires
+                    )
+                    background_tasks.add_task(send_mail, input_email, LOGIN_SUB, LOGIN_CONTENT)
+                    return Token(access_token=access_token, token_type="bearer")
+                else:
+                    return HTTPException(status_code = status.HTTP_401_UNAUTHORIZED)
+            else:
+                raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = f"{input_email} not found in database")
+        else:
+            raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = INVALID_EMAIL + " or " + INVALID_PASSWORD)
+
 
 def reset_user_password(token, request_data, email_id, db):
     user_data = get_user(email_id, db)
