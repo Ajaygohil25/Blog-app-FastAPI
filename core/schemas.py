@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 from fastapi import UploadFile, File
 from pydantic import BaseModel
 
@@ -50,22 +50,22 @@ class UserMail(BaseModel):
 
 class ImageResponse(BaseModel):
     id: int
-    image_name: str
+    image_url: str
     class Config:
         from_attributes = True
 
 class LikeResponse(BaseModel):
-    id: int
-    user_id: int
+    user_name : str
 
     class Config:
         from_attributes = True
 
 class CommentResponse(BaseModel):
     id: int
+    commented_by: str
     comment: str
+    reply_by: Optional[str] = None
     reply: Optional[str] = None
-    user_id: int
 
     class Config:
         from_attributes = True
@@ -74,10 +74,15 @@ class BlogsResponse(BaseModel):
     id: int
     title: str
     content: str
-    created_at: str
-    images: List[ImageResponse]
-    last_likes: List[LikeResponse]   # Only the last three likes
-    comments: List[CommentResponse]
+    created_at: datetime
+    images: List
+    likes: List
+    liked_by_you: bool
+    total_likes: int # Only the last three likes
+    view_all_likes: str
+    comments: List
+    total_comments: int
+    view_all_comments: str
 
     class Config:
         from_attributes = True

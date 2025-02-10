@@ -1,19 +1,19 @@
 import logging
 import shutil
 from pathlib import Path
-from typing import List, Annotated, Optional
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Body
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from fastapi_pagination import add_pagination
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
 from authentication.oauth2 import get_current_user
 from core.database import get_db
-from core.schemas import BlogSchema, TokenData, CommentSchema, ReplyComment, UpdateBlogImage
+from core.schemas import BlogSchema, TokenData, CommentSchema, ReplyComment
 from repository.blogRepo import add_blog, get_all_blog_data, get_blog_data, update_blog_data, delete_blog_data, \
     like_unlike_post, comment_post, update_blog_comment, delete_blog_comment, reply_blog_comment, add_blog_image, \
-    delete_blog_image
+    delete_blog_image, get_like_of_blog, get_comment_of_blog
 
 router = APIRouter(
     tags=["Blogs"],
@@ -32,7 +32,8 @@ async def create_blog(
                 db: Session = Depends(get_db)
 ):
     saved_files = []
-    print("images ", images)
+    print("images here ", images)
+
     if images:
         for image in images:
             filepath = UPLOAD_FOLDER / image.filename
@@ -44,20 +45,31 @@ async def create_blog(
     return await add_blog(request_data, current_user,db)
 
 @router.get("/blog/show_all_blogs")
-def get_all_blog(db: Session = Depends(get_db), page:int = 1, size:int = 5):
-    return get_all_blog_data(db, page, size)
+def get_all_blog(
+                current_user: TokenData  = Depends(get_current_user),
+                db: Session = Depends(get_db),
+                 page:int = 1, size:int = 5):
+    return get_all_blog_data(current_user,db, page, size)
 
 @router.get("/blog/get_blog/{blog_id}")
-def get_blog(blog_id: int, response: Response, db: Session = Depends(get_db)):
+def get_blog(blog_id: int,
+             response: Response,
+             db: Session = Depends(get_db)):
    return get_blog_data(blog_id, response, db)
 
 @router.put("/blog/update_blog/{blog_id}")
-def update_blog(blog_id: int, request_data: BlogSchema, response: Response, db: Session = Depends(get_db)):
-    return update_blog_data(blog_id, request_data, response, db)
+def update_blog(blog_id: int, request_data: BlogSchema,
+                response: Response,
+                current_user: TokenData  = Depends(get_current_user),
+                db: Session = Depends(get_db)):
+    return update_blog_data(blog_id, request_data, response, current_user,db)
 
 @router.delete("/blog/delete_blog/{blog_id}")
-def delete_blog(blog_id: int,response: Response,db: Session = Depends(get_db)):
-    return delete_blog_data(blog_id, response, db)
+def delete_blog(blog_id: int,response: Response,
+                current_user: TokenData  = Depends(get_current_user),
+                db: Session = Depends(get_db)):
+
+    return delete_blog_data(blog_id, response, current_user,db)
 
 @router.post("/blog/like-unlike/{blog_id}")
 def like_unlike(
@@ -125,3 +137,11 @@ async def update_blog_image(blog_id: int,
             saved_files.append(str(filepath))
     print("files ", saved_files)
     return await add_blog_image(blog_id, images, response,current_user, db)
+
+@router.get("/blog/get-all-like/{blog_id}")
+def get_all_like(blog_id: int, response: Response, db: Session = Depends(get_db)):
+    return get_like_of_blog(blog_id, db)
+
+@router.get("/blog/get-all-comment/{blog_id}")
+def get_all_like(blog_id: int, response: Response, db: Session = Depends(get_db)):
+    return get_comment_of_blog(blog_id, db)

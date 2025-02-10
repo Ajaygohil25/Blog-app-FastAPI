@@ -23,6 +23,7 @@ def add_user(request_data: UserSchema, db):
     if validate_input(request_data):
         if get_user(request_data.email, db):
             raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"{request_data.email} already exist in system !")
+        
         encrypted_password = Hash.encrypt(request_data.password)
         user_data = Users(
             name = request_data.name,
